@@ -99,7 +99,18 @@ class FishAudioLoginBot:
             chrome_options.add_experimental_option('useAutomationExtension', False)
             
             # For Streamlit Cloud - specify chromium binary path
-            chrome_options.binary_location = "/usr/bin/chromium-browser"
+            chromium_paths = [
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser", 
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable"
+            ]
+            
+            for path in chromium_paths:
+                if os.path.exists(path):
+                    chrome_options.binary_location = path
+                    logger.info(f"Found browser at: {path}")
+                    break
             
             # User agent to avoid detection
             chrome_options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -109,8 +120,8 @@ class FishAudioLoginBot:
                 # Method 1: Use undetected-chromedriver (best for cloud)
                 lambda: self._setup_undetected_chrome(),
                 
-                # Method 2: Use chromium-chromedriver from packages.txt
-                lambda: webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=chrome_options),
+                # Method 2: Use system chromedriver paths
+                lambda: self._setup_system_chrome(chrome_options),
                 
                 # Method 3: Use webdriver-manager
                 lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options),
@@ -149,6 +160,21 @@ class FishAudioLoginBot:
             logger.error(f"Error setting up driver: {e}")
             return False
     
+    def _setup_system_chrome(self, chrome_options):
+        """Try different system chromedriver paths"""
+        driver_paths = [
+            "/usr/bin/chromedriver",
+            "/usr/bin/chromium-driver", 
+            "/usr/local/bin/chromedriver"
+        ]
+        
+        for path in driver_paths:
+            if os.path.exists(path):
+                logger.info(f"Found chromedriver at: {path}")
+                return webdriver.Chrome(executable_path=path, options=chrome_options)
+        
+        raise Exception("No system chromedriver found")
+    
     def _setup_undetected_chrome(self):
         """Setup undetected Chrome driver for better cloud compatibility"""
         try:
@@ -160,8 +186,16 @@ class FishAudioLoginBot:
             options.add_argument("--window-size=1920,1080")
             
             # Try to use system chromium if available
-            if os.path.exists("/usr/bin/chromium-browser"):
-                options.binary_location = "/usr/bin/chromium-browser"
+            chromium_paths = [
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser", 
+                "/usr/bin/google-chrome"
+            ]
+            
+            for path in chromium_paths:
+                if os.path.exists(path):
+                    options.binary_location = path
+                    break
             
             driver = uc.Chrome(options=options, version_main=None)
             return driver
