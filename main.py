@@ -117,14 +117,14 @@ class FishAudioLoginBot:
             
             # Try different approaches to setup ChromeDriver
             driver_setup_methods = [
-                # Method 1: Use undetected-chromedriver (best for cloud)
+                # Method 1: Use webdriver-manager (most reliable)
+                lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options),
+                
+                # Method 2: Use undetected-chromedriver
                 lambda: self._setup_undetected_chrome(),
                 
-                # Method 2: Use system chromedriver paths
+                # Method 3: Use system chromedriver paths
                 lambda: self._setup_system_chrome(chrome_options),
-                
-                # Method 3: Use webdriver-manager
-                lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options),
                 
                 # Method 4: Default Chrome setup
                 lambda: webdriver.Chrome(options=chrome_options)
@@ -356,8 +356,36 @@ def main():
     
     # Check if selenium is available
     if not SELENIUM_AVAILABLE:
-        st.error("⚠️ Selenium is not installed. Please install the required dependencies.")
-        st.code("pip install selenium webdriver-manager", language="bash")
+        st.error("⚠️ **Selenium Installation Issue**")
+        st.markdown("""
+        **If you're seeing this error:**
+        
+        1. **First time deployment**: Wait 2-3 minutes for packages to install completely
+        2. **Persistent error**: Try these steps:
+           - Go to **Manage App** → **Reboot App**
+           - Check the **terminal logs** for installation errors
+           - Ensure `requirements.txt` and `packages.txt` are in your repository root
+        
+        **Files needed in your repository:**
+        - `requirements.txt` (with selenium, webdriver-manager)
+        - `packages.txt` (with chromium, chromium-driver)
+        """)
+        
+        with st.expander("📋 View Required Files"):
+            st.code("""
+# requirements.txt
+streamlit>=1.28.0
+selenium>=4.15.0
+requests>=2.31.0
+webdriver-manager>=4.0.1
+undetected-chromedriver>=3.5.4
+
+# packages.txt  
+chromium
+chromium-driver
+            """)
+        
+        st.info("💡 **Tip**: If packages are still installing, refresh the page in 2-3 minutes.")
         st.stop()
     
     st.title("🐠 Fish.audio Auto-Login System")
