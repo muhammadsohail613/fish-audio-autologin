@@ -2,12 +2,13 @@
 """
 Fish.audio Auto-Login Streamlit Cloud App
 Web-based control panel for the Fish.audio auto-login system
-Compatible with Streamlit Cloud deployment
+Enhanced Chrome compatibility for Streamlit Cloud deployment
 """
 
 import streamlit as st
 import time
 import os
+import sys
 import requests
 import zipfile
 import stat
@@ -18,7 +19,13 @@ from datetime import datetime
 import subprocess
 import platform
 
-# Import selenium components
+# Check Python version and environment
+st.sidebar.write(f"🐍 Python: {sys.version.split()[0]}")
+
+# Import selenium components with better error handling
+SELENIUM_AVAILABLE = False
+IMPORT_ERRORS = []
+
 try:
     from selenium import webdriver
     from selenium.webdriver.common.by import By
@@ -27,11 +34,23 @@ try:
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
     from selenium.common.exceptions import TimeoutException, NoSuchElementException
-    from webdriver_manager.chrome import ChromeDriverManager
-    import undetected_chromedriver as uc
     SELENIUM_AVAILABLE = True
-except ImportError:
-    SELENIUM_AVAILABLE = False
+except ImportError as e:
+    IMPORT_ERRORS.append(f"selenium: {e}")
+
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    WEBDRIVER_MANAGER_AVAILABLE = True
+except ImportError as e:
+    WEBDRIVER_MANAGER_AVAILABLE = False
+    IMPORT_ERRORS.append(f"webdriver_manager: {e}")
+
+try:
+    import undetected_chromedriver as uc
+    UNDETECTED_CHROME_AVAILABLE = True
+except ImportError as e:
+    UNDETECTED_CHROME_AVAILABLE = False
+    IMPORT_ERRORS.append(f"undetected_chromedriver: {e}")
 
 # Configuration
 LOGIN_URL = "https://fish.audio/auth/"
@@ -356,36 +375,60 @@ def main():
     
     # Check if selenium is available
     if not SELENIUM_AVAILABLE:
-        st.error("⚠️ **Selenium Installation Issue**")
+        st.error("🚨 **Selenium Module Not Found**")
         st.markdown("""
-        **If you're seeing this error:**
-        
-        1. **First time deployment**: Wait 2-3 minutes for packages to install completely
-        2. **Persistent error**: Try these steps:
-           - Go to **Manage App** → **Reboot App**
-           - Check the **terminal logs** for installation errors
-           - Ensure `requirements.txt` and `packages.txt` are in your repository root
-        
-        **Files needed in your repository:**
-        - `requirements.txt` (with selenium, webdriver-manager)
-        - `packages.txt` (with chromium, chromium-driver)
+        **Possible causes:**
+        1. **Installation in progress** - Streamlit Cloud may still be installing packages
+        2. **Missing requirements.txt** - Make sure it's in your repository root
+        3. **Package installation failed** - Check deployment logs
         """)
         
-        with st.expander("📋 View Required Files"):
-            st.code("""
-# requirements.txt
-streamlit>=1.28.0
+        # Show detailed import errors
+        with st.expander("🔍 Detailed Import Errors"):
+            for error in IMPORT_ERRORS:
+                st.code(error)
+        
+        # Show environment info
+        st.info(f"**Environment**: Python {sys.version.split()[0]} on {platform.system()}")
+        
+        # Show required files
+        with st.expander("📋 Required Repository Files"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**requirements.txt**")
+                st.code("""streamlit>=1.28.0
 selenium>=4.15.0
 requests>=2.31.0
 webdriver-manager>=4.0.1
-undetected-chromedriver>=3.5.4
-
-# packages.txt  
-chromium
+undetected-chromedriver>=3.5.4""")
+            
+            with col2:
+                st.markdown("**packages.txt**")
+                st.code("""chromium
 chromium-driver
-            """)
+xvfb""")
         
-        st.info("💡 **Tip**: If packages are still installing, refresh the page in 2-3 minutes.")
+        # Troubleshooting steps
+        st.markdown("### 🛠️ Troubleshooting Steps:")
+        st.markdown("""
+        1. **Wait 5 minutes** - Initial deployment can take time
+        2. **Check files** - Ensure `requirements.txt` and `packages.txt` are in repo root
+        3. **Reboot app** - Go to "Manage App" → "Reboot"
+        4. **Check logs** - Look for installation errors in the terminal
+        5. **Repository structure**:
+           ```
+           your-repo/
+           ├── app.py
+           ├── requirements.txt
+           └── packages.txt
+           ```
+        """)
+        
+        # Add refresh button
+        if st.button("🔄 Refresh Page"):
+            st.rerun()
+        
         st.stop()
     
     st.title("🐠 Fish.audio Auto-Login System")
