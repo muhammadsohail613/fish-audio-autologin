@@ -28,6 +28,7 @@ try:
     from selenium.webdriver.chrome.options import Options
     from selenium.common.exceptions import TimeoutException, NoSuchElementException
     from webdriver_manager.chrome import ChromeDriverManager
+    import undetected_chromedriver as uc
     SELENIUM_AVAILABLE = True
 except ImportError:
     SELENIUM_AVAILABLE = False
@@ -105,13 +106,16 @@ class FishAudioLoginBot:
             
             # Try different approaches to setup ChromeDriver
             driver_setup_methods = [
-                # Method 1: Use chromium-chromedriver from packages.txt
+                # Method 1: Use undetected-chromedriver (best for cloud)
+                lambda: self._setup_undetected_chrome(),
+                
+                # Method 2: Use chromium-chromedriver from packages.txt
                 lambda: webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=chrome_options),
                 
-                # Method 2: Use webdriver-manager
+                # Method 3: Use webdriver-manager
                 lambda: webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options),
                 
-                # Method 3: Default Chrome setup
+                # Method 4: Default Chrome setup
                 lambda: webdriver.Chrome(options=chrome_options)
             ]
             
@@ -144,6 +148,27 @@ class FishAudioLoginBot:
         except Exception as e:
             logger.error(f"Error setting up driver: {e}")
             return False
+    
+    def _setup_undetected_chrome(self):
+        """Setup undetected Chrome driver for better cloud compatibility"""
+        try:
+            options = uc.ChromeOptions()
+            options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920,1080")
+            
+            # Try to use system chromium if available
+            if os.path.exists("/usr/bin/chromium-browser"):
+                options.binary_location = "/usr/bin/chromium-browser"
+            
+            driver = uc.Chrome(options=options, version_main=None)
+            return driver
+            
+        except Exception as e:
+            logger.error(f"Undetected Chrome setup failed: {e}")
+            raise e
     
     def is_logged_in(self):
         """Check if user is currently logged in"""
