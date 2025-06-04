@@ -19,9 +19,6 @@ from datetime import datetime
 import subprocess
 import platform
 
-# Check Python version and environment
-st.sidebar.write(f"🐍 Python: {sys.version.split()[0]}")
-
 # Import selenium components with better error handling
 SELENIUM_AVAILABLE = False
 IMPORT_ERRORS = []
@@ -366,12 +363,16 @@ class FishAudioLoginBot:
 
 # Streamlit App
 def main():
+    # MUST be the first Streamlit command
     st.set_page_config(
         page_title="Fish.audio Auto-Login",
         page_icon="🐠",
         layout="wide",
         initial_sidebar_state="expanded"
     )
+    
+    # Check Python version and environment (after page config)
+    st.sidebar.write(f"🐍 Python: {sys.version.split()[0]}")
     
     # Check if selenium is available
     if not SELENIUM_AVAILABLE:
